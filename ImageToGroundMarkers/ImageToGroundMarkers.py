@@ -7,56 +7,55 @@ def region_to_wp(regionId, regionX, regionY, plane):
     return ((regionId >> 8) << 6) + regionX, ((regionId & 0xff) << 6) + regionY, plane
 
 def wp_to_region(wpX, wpY, plane):
-    return ((wpX >> 6) << 8) | (wpY >> 6), wpX & 63, wpY & 63, plane
+    return ((wpX >> 6) << 8) | (wpY >> 6), wpX & 0x3f, wpY & 0x3f, plane
 
-def rgba_to_int(tuple):
-    sz = len(tuple)
-    if not(sz == 3 or sz == 4):
-        return 0
+def rgba_to_int(r, g, b, a=0xff):
+    alpha = a & 0xff
+    val = (alpha << 24) | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff)
+    return ctypes.c_long(val).value, alpha == 0
 
-    transparent = False
-    val = ((tuple[0] & 0xff) << 16) | ((tuple[1] & 0xff) << 8) | (tuple[2] & 0xff)
-    if sz == 4:
-        val |= ((tuple[3] & 0xff) << 24)
-        if tuple[3] == 0:
-            transparent = True
+def image_to_ground_markers(imagePath, coordsTuple):
+    if not(len(coordsTuple) == 3 or len(coordsTuple) == 4):
+        raise ValueError('coordsTuple has to be format (wpX, wpY, plane) or (regionId, rX, rY, plane).')
+
+    if len(coordsTuple) == 4:
+        startWP = region_to_wp(*coordsTuple)
     else:
-        val += 0xff << 24
+        startWP = coordsTuple
 
-    return ctypes.c_long(val).value, transparent
+    imageFile = Image.open(imagePath, 'r')
+    imageSize = imageFile.size
+    imageArray = imageFile.load()
 
-#START_WP = (2257, 5332, 0)
+    exportValues = []
+
+    for x in range(imageSize[0]):
+        for y in range (imageSize[1]):
+            wpX = startWP[0] + x
+            wpY = startWP[1] + y
+            plane = startWP[2]
+            pixel = imageArray[x, imageSize[1] - y - 1]
+            if len(pixel) == 3 or len(pixel) == 4:
+                color, transparent = rgba_to_int(*pixel)
+        
+                if not(transparent):
+                    regionInfo = wp_to_region(wpX, wpY, plane)
+
+                    valueDict = {}
+                    valueDict['regionId'] = regionInfo[0]
+                    valueDict['regionX'] = regionInfo[1]
+                    valueDict['regionY'] = regionInfo[2]
+                    valueDict['z'] = regionInfo[3]
+                    valueDict['color'] = colorDict = {}
+                    colorDict['value'] = color
+                    colorDict['falpha'] = 0.0
+
+                    exportValues.append(valueDict)
+
+    return json.dumps(exportValues)
+
+START_WP = (2257, 5332, 0)
 START_COORDS = (9043, 17, 20, 0)
-START_WP = region_to_wp(*START_COORDS)
 IMAGE_PATH = r'D:\cybor\Pictures\importmarkers\rl.png'
 
-imageFile = Image.open(IMAGE_PATH, 'r')
-imageSize = imageFile.size
-imageArray = imageFile.load()
-
-exportValues = []
-
-for x in range(imageSize[0]):
-    for y in range (imageSize[1]):
-        wpX = START_WP[0] + x
-        wpY = START_WP[1] + y
-        plane = START_WP[2]
-        color, transparent = rgba_to_int(imageArray[x,imageSize[1] - y - 1])
-        
-        if not(transparent):
-            regionInfo = wp_to_region(wpX, wpY, plane)
-
-            valueDict = {}
-            valueDict['regionId'] = regionInfo[0]
-            valueDict['regionX'] = regionInfo[1]
-            valueDict['regionY'] = regionInfo[2]
-            valueDict['z'] = regionInfo[3]
-            valueDict['color'] = colorDict = {}
-            colorDict['value'] = color
-            colorDict['falpha'] = 0.0
-
-            exportValues.append(valueDict)
-
-outputJSON = json.dumps(exportValues)
-
-pyperclip.copy(outputJSON)
+pyperclip.copy(image_to_ground_markers(IMAGE_PATH, START_WP))
