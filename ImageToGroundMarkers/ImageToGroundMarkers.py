@@ -7,7 +7,7 @@ def region_to_wp(regionId, regionX, regionY, plane):
     return ((regionId >> 8) << 6) + regionX, ((regionId & 0xff) << 6) + regionY, plane
 
 def wp_to_region(wpX, wpY, plane):
-    return ((wpX >> 6) << 8) + (wpY >> 6), wpX % 64, wpY % 64, plane
+    return ((wpX >> 6) << 8) | (wpY >> 6), wpX & 63, wpY & 63, plane
 
 def rgba_to_int(tuple):
     sz = len(tuple)
@@ -15,9 +15,9 @@ def rgba_to_int(tuple):
         return 0
 
     transparent = False
-    val = ((tuple[0] & 0xff) << 16) + ((tuple[1] & 0xff) << 8) + (tuple[2] & 0xff)
+    val = ((tuple[0] & 0xff) << 16) | ((tuple[1] & 0xff) << 8) | (tuple[2] & 0xff)
     if sz == 4:
-        val += ((tuple[3] & 0xff) << 24)
+        val |= ((tuple[3] & 0xff) << 24)
         if tuple[3] == 0:
             transparent = True
     else:
@@ -25,10 +25,12 @@ def rgba_to_int(tuple):
 
     return ctypes.c_long(val).value, transparent
 
-START_WP = [2257, 5332, 0]
-IMAGE = r'D:\cybor\Pictures\importmarkers\rl.png'
+#START_WP = (2257, 5332, 0)
+START_COORDS = (9043, 17, 20, 0)
+START_WP = region_to_wp(*START_COORDS)
+IMAGE_PATH = r'D:\cybor\Pictures\importmarkers\rl.png'
 
-imageFile = Image.open(IMAGE, 'r')
+imageFile = Image.open(IMAGE_PATH, 'r')
 imageSize = imageFile.size
 imageArray = imageFile.load()
 
@@ -45,7 +47,7 @@ for x in range(imageSize[0]):
             regionInfo = wp_to_region(wpX, wpY, plane)
 
             valueDict = {}
-            valueDict["regionId"] = regionInfo[0]
+            valueDict['regionId'] = regionInfo[0]
             valueDict['regionX'] = regionInfo[1]
             valueDict['regionY'] = regionInfo[2]
             valueDict['z'] = regionInfo[3]
