@@ -18,10 +18,7 @@ def image_to_ground_markers(imagePath, coordsTuple):
     if not(len(coordsTuple) == 3 or len(coordsTuple) == 4):
         raise ValueError('coordsTuple has to be format (wpX, wpY, plane) or (regionId, rX, rY, plane).')
 
-    if len(coordsTuple) == 4:
-        startWP = region_to_wp(*coordsTuple)
-    else:
-        startWP = coordsTuple
+    startX, startY, startPlane = region_to_wp(*coordsTuple) if len(coordsTuple) == 4 else coordsTuple
 
     imageFile = Image.open(imagePath, 'r')
 
@@ -44,7 +41,7 @@ def image_to_ground_markers(imagePath, coordsTuple):
         for y in range (imageY):
             color, alpha = colorFunc(*imageArray[x, imageY - y - 1])
             if alpha > 0:
-                rId, rX, rY, plane = wp_to_region(startWP[0] + x, startWP[1] + y, startWP[2])
+                rId, rX, rY, plane = wp_to_region(startX + x, startY + y, startPlane)
 
                 valueDict = {}
                 valueDict['regionId'] = rId
