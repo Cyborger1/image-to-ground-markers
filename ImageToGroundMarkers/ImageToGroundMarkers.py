@@ -57,10 +57,10 @@ def image_to_ground_markers(imagePath, coordsTuple):
 
                 exportValues.append(valueDict)
 
-    return json.dumps(exportValues)
+    return exportValues
 
 START_WP = (2257, 5332, 0)
 START_COORDS = (9043, 17, 20, 0)
-IMAGE_PATH = r'D:\cybor\Pictures\importmarkers\rl.png'
+IMAGE_PATH = r'rl-30x25.png'
 
-pyperclip.copy(image_to_ground_markers(IMAGE_PATH, START_WP))
+pyperclip.copy(json.dumps(image_to_ground_markers(IMAGE_PATH, START_WP)))
