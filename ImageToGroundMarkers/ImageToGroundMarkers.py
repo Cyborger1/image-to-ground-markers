@@ -56,6 +56,7 @@ def image_to_ground_markers(imagePath, coordsTuple, minAlpha=1):
 
     return exportValues
 
+# Start position is the most South-Western tile
 START_WP = (2257, 5332, 0)
 START_COORDS = (9043, 17, 20, 0)
 IMAGE_PATH = r'rl-30x25.png'
